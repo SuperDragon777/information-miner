@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Information Miner</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f0f0f 0%, #1a1a2e 50%, #16213e 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            color: #fff;
+            overflow-x: hidden;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3),
+                        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            animation: slideIn 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #00f0ff, #0099ff, #ff00ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+            letter-spacing: -0.5px;
+        }
+
+        .subtitle {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.95rem;
+            margin-bottom: 35px;
+            font-weight: 300;
+        }
+
+        .info-section {
+            margin-bottom: 25px;
+        }
+
+        .info-label {
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.5);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .info-value {
+            font-size: 1.3rem;
+            color: #fff;
+            font-weight: 500;
+            padding: 12px 16px;
+            background: rgba(0, 240, 255, 0.05);
+            border-left: 3px solid #00f0ff;
+            border-radius: 8px;
+            word-break: break-word;
+            transition: all 0.3s ease;
+        }
+
+        .info-value:hover {
+            background: rgba(0, 240, 255, 0.1);
+            transform: translateX(5px);
+        }
+
+        .info-value.unknown {
+            border-left-color: #ff6b6b;
+            background: rgba(255, 107, 107, 0.05);
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .divider {
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            margin: 30px 0;
+        }
+
+        .os-icon {
+            font-size: 1.5rem;
+            margin-right: 8px;
+            display: inline-block;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: #00f0ff;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 480px) {
+            .card {
+                padding: 25px;
+            }
+
+            .title {
+                font-size: 2rem;
+            }
+
+            .info-value {
+                font-size: 1.1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <h1 class="title">information-miner</h1>
+            <p class="subtitle">Информация об устройстве</p>
+
+            <div class="divider"></div>
+
+            <div class="info-section">
+                <div class="info-label">Операционная система</div>
+                <div class="info-value" id="osValue">
+                    <span class="loading"></span>Определение...
+                </div>
+            </div>
+
+
+
+            <div id="additionalInfo"></div>
+        </div>
+    </div>
+
+    <script>
+        function detectOSSafe() {
+            const ua = navigator.userAgent;
+            const platform = navigator.platform || '';
+            const maxTouchPoints = navigator.maxTouchPoints || 0;
+            
+            let os = 'Unknown';
+            let icon = '❓';
+
+            if (/windows|win32|win64|winnt/i.test(ua) || /windows|win32/i.test(platform)) {
+                os = 'Windows';
+                icon = '🪟';
+            }
+            else if (/iphone|ipad|ipod/i.test(ua)) {
+                os = 'iOS';
+                icon = '🍎';
+            }
+
+            else if (/macintosh|macintel|mac os x/i.test(ua) && !/iphone|ipad|ipod/i.test(ua)) {
+                os = 'macOS';
+                icon = '🍎';
+            }
+
+            else if (/android/i.test(ua)) {
+                os = 'Android';
+                icon = '🤖';
+            }
+
+            else if (/linux|x11|ubuntu|debian/i.test(ua)) {
+                os = 'Linux';
+                icon = '🐧';
+            }
+
+            return { os, icon };
+        }
+
+        function getDeviceInfo() {
+            let deviceName = 'Unknown Device';
+            const cores = navigator.hardwareConcurrency || 0;
+            const memory = navigator.deviceMemory || 0;
+            const touchPoints = navigator.maxTouchPoints || 0;
+
+            if (touchPoints > 0 && memory <= 4) {
+                deviceName = 'Mobile Device';
+            } else if (touchPoints > 0 && memory > 4) {
+                deviceName = 'Tablet Device';
+            } else if (touchPoints === 0 && cores >= 4) {
+                deviceName = 'Desktop Computer';
+            } else if (cores === 1 || cores === 2) {
+                deviceName = 'Laptop';
+            }
+
+            if (/iphone/i.test(navigator.userAgent)) {
+                deviceName = 'iPhone';
+            } else if (/ipad/i.test(navigator.userAgent)) {
+                deviceName = 'iPad';
+            } else if (/pixel/i.test(navigator.userAgent)) {
+                deviceName = 'Google Pixel';
+            } else if (/samsung/i.test(navigator.userAgent)) {
+                deviceName = 'Samsung Device';
+            }
+
+            return deviceName;
+        }
+
+        function safeRender(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        const userData = {
+            os: null,
+            icon: null,
+            deviceName: null
+        };
+
+        Object.defineProperty(window, 'addDeviceInfo', {
+            value: function() {
+                console.warn('Попытка добавить информацию запрещена');
+                return false;
+            },
+            writable: false,
+            configurable: false
+        });
+
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                const { os, icon } = detectOSSafe();
+                const deviceName = getDeviceInfo();
+
+                userData.os = os;
+                userData.icon = icon;
+                userData.deviceName = deviceName;
+
+                const osValue = document.getElementById('osValue');
+                osValue.innerHTML = `<span class="os-icon">${icon}</span>${safeRender(os)}`;
+
+                const deviceNameValue = document.getElementById('deviceNameValue');
+                const deviceClass = deviceName === 'Unknown Device' ? 'unknown' : '';
+                deviceNameValue.className = `info-value ${deviceClass}`;
+                deviceNameValue.innerHTML = safeRender(deviceName);
+            }, 300);
+        });
+
+        Object.defineProperty(console, 'log', {
+            value: function(msg) {
+                if (typeof msg === 'string' && msg.includes('userData')) {
+                    console.warn('Доступ к конфиденциальным данным заблокирован');
+                    return;
+                }
+            },
+            writable: false
+        });
+    </script>
+</body>
+</html>
