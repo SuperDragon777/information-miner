@@ -30,6 +30,7 @@
 
         .card {
             background: rgba(255, 255, 255, 0.05);
+            -webkit-backdrop-filter: blur(20px);
             backdrop-filter: blur(20px);
             border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: 20px;
@@ -104,6 +105,62 @@
             color: rgba(255, 255, 255, 0.7);
         }
 
+        .info-source {
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.4);
+            margin-top: 6px;
+            padding-left: 16px;
+            border-left: 3px solid rgba(0, 240, 255, 0.3);
+            font-style: italic;
+        }
+
+        .info-icon {
+            margin-right: 6px;
+            cursor: help;
+        }
+
+        .fingerprint-value {
+            background: rgba(255, 255, 255, 0.08);
+            border-left-color: rgba(255, 255, 255, 0.15);
+        }
+
+        .fingerprint-value:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .fingerprint-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .fingerprint-text {
+            font-family: 'Courier New', monospace;
+            font-size: 1.1rem;
+            letter-spacing: 1px;
+            flex: 1;
+            word-break: break-all;
+        }
+
+        .copy-icon {
+            font-size: 1.3rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            flex-shrink: 0;
+            opacity: 0.4;
+            width: 20px;
+            height: 20px;
+            display: inline-block;
+        }
+
+        .copy-icon:hover {
+            opacity: 0.8;
+        }
+
+        .copy-icon.copied {
+            opacity: 0.8;
+        }
+
         .divider {
             height: 1px;
             background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
@@ -144,6 +201,15 @@
             .info-value {
                 font-size: 1.1rem;
             }
+
+            .fingerprint-container {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .copy-btn {
+                width: 100%;
+            }
         }
     </style>
 </head>
@@ -160,11 +226,52 @@
                 <div class="info-value" id="osValue">
                     <span class="loading"></span>Определение...
                 </div>
+                <div class="info-source">
+                    <span class="info-icon" title="Определяется на основе данных браузера">ℹ️</span> Источник: User Agent
+                </div>
             </div>
 
+            <div class="info-section">
+                <div class="info-label">Браузер</div>
+                <div class="info-value" id="browserValue">
+                    <span class="loading"></span>Определение...
+                </div>
+                <div class="info-source">
+                    <span class="info-icon" title="Определяется на основе данных браузера">ℹ️</span> Источник: User Agent
+                </div>
+            </div>
 
+            <div class="info-section">
+                <div class="info-label">Разрешение экрана</div>
+                <div class="info-value" id="screenValue">
+                    <span class="loading"></span>Определение...
+                </div>
+                <div class="info-source">
+                    <span class="info-icon" title="Физическое разрешение дисплея">ℹ️</span> Источник: Screen API
+                </div>
+            </div>
 
-            <div id="additionalInfo"></div>
+            <div class="info-section">
+                <div class="info-label">IP Адрес</div>
+                <div class="info-value" id="ipValue">
+                    <span class="loading"></span>Определение...
+                </div>
+                <div class="info-source">
+                    <span class="info-icon" title="Запрос к публичному API сервису">ℹ️</span> Источник: ipify.org API
+                </div>
+            </div>
+
+            <div class="divider"></div>
+
+            <div class="info-section">
+                <div class="info-label">Уникальный ID</div>
+                <div class="info-value" id="fingerprintValue">
+                    <span class="loading"></span>Генерация...
+                </div>
+                <div class="info-source">
+                    <span class="info-icon" title="Хеш на основе параметров устройства">ℹ️</span> Источник: Device Fingerprint
+                </div>
+            </div>
         </div>
     </div>
 
@@ -172,7 +279,6 @@
         function detectOSSafe() {
             const ua = navigator.userAgent;
             const platform = navigator.platform || '';
-            const maxTouchPoints = navigator.maxTouchPoints || 0;
             
             let os = 'Unknown';
             let icon = '❓';
@@ -185,17 +291,14 @@
                 os = 'iOS';
                 icon = '🍎';
             }
-
             else if (/macintosh|macintel|mac os x/i.test(ua) && !/iphone|ipad|ipod/i.test(ua)) {
                 os = 'macOS';
                 icon = '🍎';
             }
-
             else if (/android/i.test(ua)) {
                 os = 'Android';
                 icon = '🤖';
             }
-
             else if (/linux|x11|ubuntu|debian/i.test(ua)) {
                 os = 'Linux';
                 icon = '🐧';
@@ -204,33 +307,71 @@
             return { os, icon };
         }
 
-        function getDeviceInfo() {
-            let deviceName = 'Unknown Device';
-            const cores = navigator.hardwareConcurrency || 0;
-            const memory = navigator.deviceMemory || 0;
-            const touchPoints = navigator.maxTouchPoints || 0;
+        function detectBrowser() {
+            const ua = navigator.userAgent;
+            let browser = 'Unknown';
+            let icon = '❓';
 
-            if (touchPoints > 0 && memory <= 4) {
-                deviceName = 'Mobile Device';
-            } else if (touchPoints > 0 && memory > 4) {
-                deviceName = 'Tablet Device';
-            } else if (touchPoints === 0 && cores >= 4) {
-                deviceName = 'Desktop Computer';
-            } else if (cores === 1 || cores === 2) {
-                deviceName = 'Laptop';
+            if (/yabrowser/i.test(ua)) {
+                browser = 'Yandex Browser';
+                icon = '🔴';
+            }
+            else if (/edg/i.test(ua)) {
+                browser = 'Microsoft Edge';
+                icon = '🌊';
+            }
+            else if (/chrome|chromium|crios/i.test(ua) && !/edg/i.test(ua)) {
+                browser = 'Google Chrome';
+                icon = '🟢';
+            }
+            else if (/firefox|fxios/i.test(ua)) {
+                browser = 'Mozilla Firefox';
+                icon = '🦊';
+            }
+            else if (/safari/i.test(ua) && !/chrome|chromium|crios/i.test(ua)) {
+                browser = 'Apple Safari';
+                icon = '🧭';
+            }
+            else if (/opr\//i.test(ua)) {
+                browser = 'Opera';
+                icon = '🎭';
+            }
+            else if (/trident/i.test(ua)) {
+                browser = 'Internet Explorer';
+                icon = '🔵';
             }
 
-            if (/iphone/i.test(navigator.userAgent)) {
-                deviceName = 'iPhone';
-            } else if (/ipad/i.test(navigator.userAgent)) {
-                deviceName = 'iPad';
-            } else if (/pixel/i.test(navigator.userAgent)) {
-                deviceName = 'Google Pixel';
-            } else if (/samsung/i.test(navigator.userAgent)) {
-                deviceName = 'Samsung Device';
-            }
+            return { browser, icon };
+        }
 
-            return deviceName;
+        function getScreenResolution() {
+            const width = window.screen?.width || 0;
+            const height = window.screen?.height || 0;
+            return width && height ? `${width}x${height}` : 'Не удалось определить';
+        }
+
+        async function getPublicIP() {
+            try {
+                const response = await fetch('https://api.ipify.org?format=json');
+                const data = await response.json();
+                return data.ip;
+            } catch (error) {
+                console.error('Ошибка при определении IP:', error);
+                return 'Не удалось определить';
+            }
+        }
+
+        async function generateFingerprint(os, browser, ip, screenRes) {
+            const data = `${os}|${browser}|${ip}|${screenRes}|${navigator.language}|${navigator.platform}`;
+            
+            const encoder = new TextEncoder();
+            const dataBuffer = encoder.encode(data);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', dataBuffer);
+            
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+            
+            return hashHex.substring(0, 32);
         }
 
         function safeRender(text) {
@@ -239,10 +380,30 @@
             return div.innerHTML;
         }
 
+        function copyToClipboard(text, iconElement) {
+            navigator.clipboard.writeText(text).then(() => {
+                iconElement.innerHTML = '✓';
+                iconElement.classList.add('copied');
+                setTimeout(() => {
+                    iconElement.innerHTML = getSvgCopyIcon();
+                    iconElement.classList.remove('copied');
+                }, 1500);
+            }).catch(err => {
+                console.error('Ошибка копирования:', err);
+            });
+        }
+
+        function getSvgCopyIcon() {
+            return '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>';
+        }
+
         const userData = {
             os: null,
             icon: null,
-            deviceName: null
+            browser: null,
+            screenRes: null,
+            ip: null,
+            fingerprint: null
         };
 
         Object.defineProperty(window, 'addDeviceInfo', {
@@ -254,22 +415,43 @@
             configurable: false
         });
 
-        window.addEventListener('load', () => {
-            setTimeout(() => {
+        window.addEventListener('load', async () => {
+            setTimeout(async () => {
                 const { os, icon } = detectOSSafe();
-                const deviceName = getDeviceInfo();
+                const { browser, icon: browserIcon } = detectBrowser();
+                const screenRes = getScreenResolution();
+                const ip = await getPublicIP();
+                const fingerprint = await generateFingerprint(os, browser, ip, screenRes);
 
                 userData.os = os;
                 userData.icon = icon;
-                userData.deviceName = deviceName;
+                userData.browser = browser;
+                userData.screenRes = screenRes;
+                userData.ip = ip;
+                userData.fingerprint = fingerprint;
 
                 const osValue = document.getElementById('osValue');
                 osValue.innerHTML = `<span class="os-icon">${icon}</span>${safeRender(os)}`;
 
-                const deviceNameValue = document.getElementById('deviceNameValue');
-                const deviceClass = deviceName === 'Unknown Device' ? 'unknown' : '';
-                deviceNameValue.className = `info-value ${deviceClass}`;
-                deviceNameValue.innerHTML = safeRender(deviceName);
+                const browserValue = document.getElementById('browserValue');
+                browserValue.innerHTML = `<span class="os-icon">${browserIcon}</span>${safeRender(browser)}`;
+
+                const screenValue = document.getElementById('screenValue');
+                screenValue.innerHTML = `<span class="os-icon">🖥️</span>${safeRender(screenRes)}`;
+
+                const ipValue = document.getElementById('ipValue');
+                const ipClass = ip === 'Не удалось определить' ? 'unknown' : '';
+                ipValue.className = `info-value ${ipClass}`;
+                ipValue.innerHTML = `<span class="os-icon">🌐</span>${safeRender(ip)}`;
+
+                const fingerprintValue = document.getElementById('fingerprintValue');
+                fingerprintValue.className = 'info-value fingerprint-value';
+                fingerprintValue.innerHTML = `
+                    <div class="fingerprint-container">
+                        <span class="fingerprint-text">${safeRender(fingerprint)}</span>
+                        <span class="copy-icon" onclick="copyToClipboard('${fingerprint}', this)" title="Копировать ID">${getSvgCopyIcon()}</span>
+                    </div>
+                `;
             }, 300);
         });
 
