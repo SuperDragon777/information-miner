@@ -222,6 +222,16 @@
             <div class="divider"></div>
 
             <div class="info-section">
+                <div class="info-label">Домен</div>
+                <div class="info-value" id="domainValue">
+                    <span class="loading"></span>Определение...
+                </div>
+                <div class="info-source">
+                    <span class="info-icon" title="Домен из строки адреса">ℹ️</span> Источник: information-miner
+                </div>
+            </div>
+
+            <div class="info-section">
                 <div class="info-label">Операционная система</div>
                 <div class="info-value" id="osValue">
                     <span class="loading"></span>Определение...
@@ -276,6 +286,34 @@
     </div>
 
     <script>
+        function getDomain() {
+            try {
+                const url = new URL(window.location.href);
+                if (url.hostname) {
+                    return url.hostname;
+                }
+                
+                if (window.location.host) {
+                    return window.location.host;
+                }
+                
+                if (window.location.protocol === 'file:') {
+                    return 'localhost (файл)';
+                }
+                
+                const href = window.location.href;
+                if (href.includes('://')) {
+                    const domain = href.split('://')[1]?.split('/')[0];
+                    if (domain) return domain;
+                }
+                
+                return 'Не удалось определить';
+            } catch (error) {
+                console.error('Ошибка при определении домена:', error);
+                return 'Не удалось определить';
+            }
+        }
+
         function detectOSSafe() {
             const ua = navigator.userAgent;
             const platform = navigator.platform || '';
@@ -361,8 +399,8 @@
             }
         }
 
-        async function generateFingerprint(os, browser, ip, screenRes) {
-            const data = `${os}|${browser}|${ip}|${screenRes}|${navigator.language}|${navigator.platform}`;
+        async function generateFingerprint(domain, os, browser, ip, screenRes) {
+            const data = `${domain}|${os}|${browser}|${ip}|${screenRes}|${navigator.language}|${navigator.platform}`;
             
             const encoder = new TextEncoder();
             const dataBuffer = encoder.encode(data);
@@ -398,6 +436,7 @@
         }
 
         const userData = {
+            domain: null,
             os: null,
             icon: null,
             browser: null,
@@ -417,18 +456,23 @@
 
         window.addEventListener('load', async () => {
             setTimeout(async () => {
+                const domain = getDomain();
                 const { os, icon } = detectOSSafe();
                 const { browser, icon: browserIcon } = detectBrowser();
                 const screenRes = getScreenResolution();
                 const ip = await getPublicIP();
-                const fingerprint = await generateFingerprint(os, browser, ip, screenRes);
+                const fingerprint = await generateFingerprint(domain, os, browser, ip, screenRes);
 
+                userData.domain = domain;
                 userData.os = os;
                 userData.icon = icon;
                 userData.browser = browser;
                 userData.screenRes = screenRes;
                 userData.ip = ip;
                 userData.fingerprint = fingerprint;
+
+                const domainValue = document.getElementById('domainValue');
+                domainValue.innerHTML = `<span class="os-icon">🌐</span>${safeRender(domain)}`;
 
                 const osValue = document.getElementById('osValue');
                 osValue.innerHTML = `<span class="os-icon">${icon}</span>${safeRender(os)}`;
@@ -442,7 +486,7 @@
                 const ipValue = document.getElementById('ipValue');
                 const ipClass = ip === 'Не удалось определить' ? 'unknown' : '';
                 ipValue.className = `info-value ${ipClass}`;
-                ipValue.innerHTML = `<span class="os-icon">🌐</span>${safeRender(ip)}`;
+                ipValue.innerHTML = `<span class="os-icon">📡</span>${safeRender(ip)}`;
 
                 const fingerprintValue = document.getElementById('fingerprintValue');
                 fingerprintValue.className = 'info-value fingerprint-value';
